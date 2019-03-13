@@ -7,6 +7,7 @@ from optparse import OptionParser
 import numpy as np
 from collections import Counter
 import os
+import numpy as np
 
 black_nodes=[]
 total_inputs=[]
@@ -143,14 +144,21 @@ def print_red(options, blk_id):
     print(number_nodes_clean_black)
 opts, args = parse_command_line()
 
-args=[]
-path = '/Volumes/KIKS/UH-bitcoin-heur_2s/UH-bitcoin-heur_2/'
-for filename in os.listdir(path):
-    if path+filename=='/Volumes/KIKS/UH-bitcoin-heur_2s/UH-bitcoin-heur_2/.DS_Store':
-        continue
-    for files in os.listdir(path + filename):
-        args.append(files.split('.')[0])
+# args=[]
+# path = '/Volumes/KIKS/UH-bitcoin-heur_2s/UH-bitcoin-heur_2/'
+# for filename in os.listdir(path):
+#     if path+filename=='/Volumes/KIKS/UH-bitcoin-heur_2s/UH-bitcoin-heur_2/.DS_Store':
+#         continue
+#     for files in os.listdir(path + filename):
+#         args.append(files.split('.')[0])
+
+args=['890','879','930']
 
 for a in args:
     print(a)
     print_red(opts, a)
+
+np.save('/Users/macbook/desktop/FYP/new_black_nodes', np.array(new_black_array_ratio))
+np.save('/Users/macbook/desktop/FYP/clean_black_tx', np.array(black_clean_tx_array))
+np.save('/Users/macbook/desktop/FYP/clean_black_volume', np.array(black_clean_volume_array))
+np.save('/Users/macbook/desktop/FYP/clean_black_nodes', np.array(number_nodes_clean_black_array))
