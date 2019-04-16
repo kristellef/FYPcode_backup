@@ -12,19 +12,27 @@ from collections import Counter
 import csv
 
 # max size of black_nodes 133.361.379 since this is the number of users
-black_nodes=set()
 total_number_nodes=set()
 # number of transactions with dirty bitcoins
 count_tx_black=0
 count_total_tx=0
 data = np.load('/Users/macbook/Desktop/FYP/files/darknet_minimise_1to2 V2.npy')
-for i in data:
-    if i not in black_nodes:
-        black_nodes.add(i)
+
 # initial number of black nodes to be used later to compute the number of new dark nodes
-inital_black_nodes = len(black_nodes)
-black_nodes_cumulative = set()
+
 y=np.array([['0','0','0','0','0','0','0','0','0','0','0','0','0']])
+
+dict_black_nodes={}
+for i in set(data):
+    if str(i)[0:3] not in dict_black_nodes.keys():
+        dict_black_nodes[str(i)[0:3]]=set()
+    dict_black_nodes[str(i)[0:3]].add(i)
+
+length_dict_black_nodes=0
+for i in dict_black_nodes.keys():
+    length_dict_black_nodes+=len(dict_black_nodes[i])
+inital_black_nodes = length_dict_black_nodes
+
 # TODO: create a dict of set with 2 first numbers
 
 #########################################################################################
@@ -69,7 +77,8 @@ def print_red(options, blk_id):
     global black_nodes
     global y
     global total_number_nodes
-    black_nodes_excluding_block = len(black_nodes)
+    global length_dict_black_nodes
+    black_nodes_excluding_block = len(dict_black_nodes)
     number_tx_in_block=0
     number_black_tx_in_block=0
     volume_tx_in_block=0
@@ -96,51 +105,39 @@ def print_red(options, blk_id):
             volume_tx_in_block+=i[1]
             all_nodes.add(i[0])
             total_number_nodes.add(i[0])
-            # if i[0] not in all_nodes:
-            #     all_nodes.append(i[0])
 
         for j in transaction_output:
             all_nodes.add(j[0])
             total_number_nodes.add(j[0])
-        if bool(inputs & black_nodes):
-            count_tx_black+=1
-            number_black_tx_in_block+=1
-            for i in transaction_input:
-                volume_black_tx_in_block+=i[1]
-                all_black_nodes.add(i[0])
-            for i in transaction_output:
-                all_black_nodes.add(i[0])
-                black_nodes.add(i[0])
-                black_nodes_cumulative.add(i[0])
-        # print ("TX:::  (%s) %s"%(blk_id, transaction_hash))
-        #
-        # print ("FULL: %s >> %s |%s "%( transaction_input, transaction_output, new_elements ))
-        # try:
-        #     (rh,rf,rs,rin,rout) = blk.short_transactions[pos]
-        #     print ("REDU: %s >> %s |%s "%(  rin, rout, rs ))
-        # except: pass
-        #
-        # print  (120*"-")
-    all_black_nodes=list(set(all_black_nodes))
+        for i in inputs:
+            str_i=str(i)
+            if str_i[0:3] in dict_black_nodes.keys():
+                print('in dict')
+                if i in dict_black_nodes[str_i[0:3]]:
+                    print('really')
+                    count_tx_black+=1
+                    number_black_tx_in_block+=1
+                    for j in transaction_input:
+                        volume_black_tx_in_block+=j[1]
+                        all_black_nodes.add(j[0])
+                    for v in transaction_output:
+                        all_black_nodes.add(v[0])
+                        for u in set(data):
+                            str_u=str(u)
+                            if str_u[0:3] not in dict_black_nodes.keys():
+                                dict_black_nodes[str_u[0:3]]=set()
+                            dict_black_nodes[str_u[0:3]].add(i)
+    for i in dict_black_nodes.keys():
+        length_dict_black_nodes+=len(dict_black_nodes[i])
+    # all_black_nodes=list(set(all_black_nodes))
     all_nodes=list(set(all_nodes))
-    new_black_nodes = len(black_nodes) - black_nodes_excluding_block
-    cumulated_black_nodes=len(black_nodes_cumulative)
-    # new black nodes, number of black nodes before entering the block
-    # new_black=[new_black_nodes,black_nodes_excluding_block,'0']
+    new_black_nodes = length_dict_black_nodes - black_nodes_excluding_block
     number_clean_tx_in_block=number_tx_in_block-number_black_tx_in_block
-    # total number of black nodes vs total number of nodes
     # TODO: don't use black_nodes, track appearance of black nodes or find an explanation
-    # total_nodes=[len(total_number_nodes),len(black_nodes),'0']
-    # clean, black, total
-    # black_clean_tx=[number_clean_tx_in_block,number_black_tx_in_block,number_tx_in_block]
     volume_clean_tx_block=volume_tx_in_block - volume_black_tx_in_block
-    # clean, black, total
-    # volume_black_clean=[volume_clean_tx_block,volume_black_tx_in_block,volume_tx_in_block]
     number_nodes_clean = len(all_nodes) - len(all_black_nodes)
-    # clean, black, total
-    # number_nodes_clean_black = [number_nodes_clean,len(all_black_nodes),len(all_nodes)]
-
-    row=[[new_black_nodes,black_nodes_excluding_block,cumulated_black_nodes,len(total_number_nodes),len(black_nodes),number_clean_tx_in_block,
+    # total number of black nodes = len(dict_black_nodes.values()) vs total number of nodes len(total_number_nodes)
+    row=[[new_black_nodes,black_nodes_excluding_block,len(total_number_nodes),length_dict_black_nodes,number_clean_tx_in_block,
     number_black_tx_in_block,number_tx_in_block,volume_clean_tx_block,volume_black_tx_in_block,volume_tx_in_block,number_nodes_clean,
     len(all_black_nodes),len(all_nodes)]]
 
@@ -156,17 +153,12 @@ for filename in os.listdir(path):
     for files in os.listdir(path + filename):
         args.append(files.split('.')[0])
 
-print('args')
-
 for a in args:
     if args.index(a)%1000==0:
         print(str(a) + '/' + str(len(args)))
     if args.index(a)%150000==0:
-        np.save('/Users/macbook/desktop/FYP/heur2s-V3'+str(args.index(a)), np.array(y))
+        np.save('/Users/macbook/desktop/FYP/heur2s-V3-'+str(args.index(a)), np.array(y))
     print_red(opts, a)
 
-# np.save('/Users/macbook/desktop/FYP/new_black_nodes', np.array(new_black_array_ratio))
-# np.save('/Users/macbook/desktop/FYP/clean_black_tx', np.array(black_clean_tx_array))
-# np.save('/Users/macbook/desktop/FYP/clean_black_volume', np.array(black_clean_volume_array))
-# np.save('/Users/macbook/desktop/FYP/clean_black_nodes', np.array(number_nodes_clean_black_array))
-np.save('/Users/macbook/desktop/FYP/heur2s-V3', np.array(y))
+np.save('/Users/macbook/desktop/FYP/order_of_blocksV3', np.array(args))
+# np.save('/Users/macbook/desktop/FYP/heur2s-V3', np.array(y))

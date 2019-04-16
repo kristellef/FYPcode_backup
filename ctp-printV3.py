@@ -12,19 +12,26 @@ from collections import Counter
 import csv
 
 # max size of black_nodes 133.361.379 since this is the number of users
-black_nodes=set()
+
 total_number_nodes=set()
 # number of transactions with dirty bitcoins
 count_tx_black=0
 count_total_tx=0
 data = np.load('/Users/macbook/Desktop/FYP/files/darknet_minimise_1to2 V2.npy')
-for i in data:
-    if i not in black_nodes:
-        black_nodes.add(i)
+
+dict_black_nodes={}
+for i in set(data):
+    if str(i)[0:3] not in dict_black_nodes.keys():
+        dict_black_nodes[str(i)[0:3]]=set()
+    dict_black_nodes[str(i)[0:3]].add(i)
+
+length_dict_black_nodes=0
+for i in dict_black_nodes.keys():
+    length_dict_black_nodes+=len(dict_black_nodes[i])
+inital_black_nodes = length_dict_black_nodes
 # initial number of black nodes to be used later to compute the number of new dark nodes
-inital_black_nodes = len(black_nodes)
 black_nodes_cumulative = set()
-y=np.array([['0','0','0','0','0','0','0','0','0','0','0','0','0']])
+y=np.array([['0','0','0','0','0','0','0','0','0','0','0','0','0','0']])
 # TODO: create a dict of set with 2 first numbers
 
 #########################################################################################
@@ -69,7 +76,9 @@ def print_red(options, blk_id):
     global black_nodes
     global y
     global total_number_nodes
-    black_nodes_excluding_block = len(black_nodes)
+    black_nodes_excluding_block = 0
+    for i in dict_black_nodes.keys():
+        black_nodes_excluding_block+=len(dict_black_nodes[i])
     number_tx_in_block=0
     number_black_tx_in_block=0
     volume_tx_in_block=0
@@ -102,16 +111,34 @@ def print_red(options, blk_id):
         for j in transaction_output:
             all_nodes.add(j[0])
             total_number_nodes.add(j[0])
-        if bool(inputs & black_nodes):
-            count_tx_black+=1
-            number_black_tx_in_block+=1
-            for i in transaction_input:
-                volume_black_tx_in_block+=i[1]
-                all_black_nodes.add(i[0])
-            for i in transaction_output:
-                all_black_nodes.add(i[0])
-                black_nodes.add(i[0])
-                black_nodes_cumulative.add(i[0])
+        # if bool(inputs & black_nodes):
+        #     count_tx_black+=1
+        #     number_black_tx_in_block+=1
+        #     for i in transaction_input:
+        #         volume_black_tx_in_block+=i[1]
+        #         all_black_nodes.add(i[0])
+        #     for i in transaction_output:
+        #         all_black_nodes.add(i[0])
+        #         black_nodes.add(i[0])
+        #         black_nodes_cumulative.add(i[0])
+
+        for i in inputs:
+            str_i=str(i)
+            if str_i[0:3] in dict_black_nodes.keys():
+                if i in dict_black_nodes[str_i[0:3]]:
+                    count_tx_black+=1
+                    number_black_tx_in_block+=1
+                    for j in transaction_input:
+                        volume_black_tx_in_block+=j[1]
+                        all_black_nodes.add(j[0])
+                    for v in transaction_output:
+                        str_v=str(v)
+                        all_black_nodes.add(v[0])
+                        if str_v[0:3] not in dict_black_nodes.keys():
+                            dict_black_nodes[str_v[0:3]]=set()
+                        dict_black_nodes[str_v[0:3]].add(i)
+                        black_nodes_cumulative.add(v[0])
+
         # print ("TX:::  (%s) %s"%(blk_id, transaction_hash))
         #
         # print ("FULL: %s >> %s |%s "%( transaction_input, transaction_output, new_elements ))
@@ -121,9 +148,12 @@ def print_red(options, blk_id):
         # except: pass
         #
         # print  (120*"-")
+    black_node_length=0
+    for i in dict_black_nodes.keys():
+        black_node_length+=len(dict_black_nodes[i])
     all_black_nodes=list(set(all_black_nodes))
     all_nodes=list(set(all_nodes))
-    new_black_nodes = len(black_nodes) - black_nodes_excluding_block
+    new_black_nodes = black_node_length - black_nodes_excluding_block
     cumulated_black_nodes=len(black_nodes_cumulative)
     # new black nodes, number of black nodes before entering the block
     # new_black=[new_black_nodes,black_nodes_excluding_block,'0']
@@ -140,7 +170,7 @@ def print_red(options, blk_id):
     # clean, black, total
     # number_nodes_clean_black = [number_nodes_clean,len(all_black_nodes),len(all_nodes)]
 
-    row=[[new_black_nodes,black_nodes_excluding_block,cumulated_black_nodes,len(total_number_nodes),len(black_nodes),number_clean_tx_in_block,
+    row=[[new_black_nodes,black_nodes_excluding_block,cumulated_black_nodes,len(total_number_nodes),black_node_length,number_clean_tx_in_block,
     number_black_tx_in_block,number_tx_in_block,volume_clean_tx_block,volume_black_tx_in_block,volume_tx_in_block,number_nodes_clean,
     len(all_black_nodes),len(all_nodes)]]
 

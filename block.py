@@ -14,9 +14,9 @@ def stderr_message(msg_type, string, indent = 0):
     print >> sys.stderr, " "*indent+"[ %s ] %s"%( msg_type, string)
 
 
-class BlockParser:
+class BlockParser(object):
 
-  def __init__(self, id, fname = None):
+  def __init__(self, id = None, fname = None):
 
     self.block_id = id
     if fname is not None:
@@ -101,3 +101,4 @@ def load_id(curr, id, method = None):
             pickled_directory = method
         outdir_name = "%s/%.3d"%(pickled_directory, id/1000)
         return pickle.load(open("%s/%d.pickle"%(outdir_name, id), "r"))
+ 

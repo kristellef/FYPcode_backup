@@ -3,6 +3,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from graph_tool.all import *
 from collections import Counter
+import re
 
 CannabisRoad = csv.reader(open('/Users/macbook/Desktop/FYP/files/CannabisRoadMarket-transactions/CannabisRoadMarket_transactions.csv','rt'),delimiter=',')
 GreenRoad = csv.reader(open('/Users/macbook/Desktop/FYP/files/GreenRoadMarket-transactions/GreenRoadMarket-transactions.csv','rt'),delimiter=',')
@@ -64,11 +65,17 @@ silk_out=[]
 def add_tx_to_array (csv_file, array_in,array_out):
     for line in csv_file:
         if len(line) == 7 and line[0] != 'date':
-            if line[2] != '':
-                array_in.append(line[1])
+            if line[2] != '' and 'E' not in line[2]:
+                if float(line[2])>=20:
+                    array_in.append(line[1])
             else:
-                if line[4] != '(fee)':
-                    array_out.append(line[4])
+                if line[4] != '(fee)' and 'E' not in line[3]:
+                    try:
+                        if line[3]!='' and float(line[3])>=20:
+                            array_out.append(line[4])
+                    except:
+                        print("this is the problem: " + line[3] + 'ok')
+                        break
 
 array = [(AlphaBay,alphabay_in,alphabay_out),(BlackBank,blackbank_in, blackbank_out), (CannabisRoad,cannabis_out, cannabis_in), (GreenRoad,greenRoad_in,greenRoad_out), (Babylon,babylon_in,babylon_out),
 (Abraxas,abraxas_in,abraxas_out),(Nucleus,nucleus_in,nucleus_out),(Sheep,sheep_in,sheep_out),(Evolution,evolution_in,evolution_out),(MiddleEarth,middle_in,middle_out),(Pandora,pandora_in,pandora_out),
@@ -152,6 +159,44 @@ v_prop[v_silkroad2]='SilkRoad2Market (00000bfdb5d7ed34)'
 v_prop[v_pandora]='PandoraOpenMarket (0000d9a5c977c03b)'
 v_prop[v_middle]='MiddleEarthMarketplace (000041317dfea6fd)'
 v_prop[v_sheep]='SheepMarketplace (0000a3a375c51032)'
+
+e_prop = g.new_vertex_property("vector<float>")
+for i in range(0,len(v)):
+    e_prop[v[i]]= [0,0,153,0.2]
+
+e_prop[v_cannabis]= [204,0,0,0.2]
+e_prop[v_greenroad]= [204,0,0,0.2]
+e_prop[v_babylon]= [204,0,0,0.2]
+e_prop[v_blackmarket]= [204,0,0,0.2]
+e_prop[v_alphabay]=[204,0,0,0.2]
+e_prop[v_abraxas]=[204,0,0,0.2]
+e_prop[v_nucleus]=[204,0,0,0.2]
+e_prop[v_evolution]=[204,0,0,0.2]
+e_prop[v_bluesky]=[204,0,0,0.2]
+e_prop[v_silkroad]=[204,0,0,0.2]
+e_prop[v_silkroad2]=[204,0,0,0.2]
+e_prop[v_pandora]=[204,0,0,0.2]
+e_prop[v_middle]=[204,0,0,0.2]
+e_prop[v_sheep]=[204,0,0,0.2]
+
+f_prop = g.new_vertex_property("int")
+for i in range(0,len(v)):
+    f_prop[v[i]]= 10
+
+f_prop[v_cannabis]= 20
+f_prop[v_greenroad]=20
+f_prop[v_babylon]= 20
+f_prop[v_blackmarket]=20
+f_prop[v_alphabay]=20
+f_prop[v_abraxas]=20
+f_prop[v_nucleus]=20
+f_prop[v_evolution]=20
+f_prop[v_bluesky]=20
+f_prop[v_silkroad]=20
+f_prop[v_silkroad2]=20
+f_prop[v_pandora]=20
+f_prop[v_middle]=20
+f_prop[v_sheep]=20
 
 print('vertex added')
 
@@ -314,6 +359,6 @@ for param in array:
 
 print('edges added')
 
-graph_draw(g, vertex_font_size=10, fit_view=1, output_size=(6000, 6000), output="/Users/macbook/Desktop/FYP/charts/network-14-darknet.png")
+graph_draw(g, vertex_font_size=f_prop, vertex_fill_color = e_prop, vertex_text=v_prop, fit_view=1, output_size=(6000, 6000), output="/Users/macbook/Desktop/FYP/charts/small-network-14-darknet-over20.png")
 # vertex_text=v_prop, to add labels
 print('graph drawn')
